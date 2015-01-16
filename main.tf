@@ -4,23 +4,37 @@ provider "aws" {
     region = "${var.aws_region}"
 }
 
+variable "aws_security_group" {
+    default = {
+        sg_count                = ""
+
+        sg_0_name               = ""
+        sg_0_ingress_from_port  = ""
+        sg_0_ingress_to_port    = ""
+        sg_0_protocol           = ""
+
+        sg_1_name               = ""
+        sg_1_ingress_from_port  = ""
+        sg_1_ingress_to_port    = ""
+        sg_1_protocol           = ""
+
+        sg_2_name               = ""
+        sg_2_ingress_from_port  = ""
+        sg_2_ingress_to_port    = ""
+        sg_2_protocol           = ""
+    }
+}
+
 resource "aws_security_group" "default" {
-    name = "terraform_security_group"
+    count = "${var.aws_security_group.sg_count}"
+
+    name = "terraform_security_group_${lookup(var.aws_security_group, concat("sg_", count.index, "_name"))}"
     description = "AWS security group for terraform example"
 
-    # ssh for everyone
     ingress {
-        from_port   = 22
-        to_port     = 22
-        protocol    = "tcp"
-        cidr_blocks = [ "0.0.0.0/0" ]
-    }
-
-    # http for everyone
-    ingress {
-        from_port   = 80
-        to_port     = 80
-        protocol    = "tcp"
+        from_port   = "${lookup(var.aws_security_group, concat("sg_", count.index, "_from_port"))}"
+        to_port     = "${lookup(var.aws_security_group, concat("sg_", count.index, "_to_port"))}"
+        protocol    = "${lookup(var.aws_security_group, concat("sg_", count.index, "_protocol"))}"
         cidr_blocks = [ "0.0.0.0/0" ]
     }
 
@@ -40,22 +54,22 @@ resource "aws_elb" "web" {
     }
 
     availability_zones = [
-        "${aws_instance.web_1.availability_zone}",
-        "${aws_instance.web_2.availability_zone}"
+        "${aws_instance.web.*.availability_zone}"
     ]
 
     instances = [
-        "${aws_instance.web_1.id}",
-        "${aws_instance.web_2.id}"
+        "${aws_instance.web.*.id}",
     ]
 }
 
-resource "aws_instance" "web_1" {
+resource "aws_instance" "web" {
+    count = 2
+
     instance_type = "${var.aws_instance_type}"
     ami = "${lookup(var.aws_amis, var.aws_region)}"
 
     key_name = "${var.aws_key_name}"
-    security_groups = [ "${aws_security_group.default.name}" ]
+    security_groups = [ "${aws_security_group.default.*.name}" ]
     associate_public_ip_address = true
 
     connection {
@@ -73,34 +87,7 @@ resource "aws_instance" "web_1" {
     }
 
     tags {
-        Name = "Terraform web 1"
-    }
-}
-
-resource "aws_instance" "web_2" {
-    instance_type = "${var.aws_instance_type}"
-    ami = "${lookup(var.aws_amis, var.aws_region)}"
-
-    key_name = "${var.aws_key_name}"
-    security_groups = [ "${aws_security_group.default.name}" ]
-    associate_public_ip_address = true
-
-    connection {
-        user = "${var.aws_instance_user}"
-        key_file = "${var.aws_key_path}"
-    }
-
-    provisioner "remote-exec" {
-        inline = [
-            "sudo yum install -y docker",
-            "sudo service docker start",
-            "sudo docker pull nginx",
-            "sudo docker run -d -p 80:80 nginx"
-        ]
-    }
-
-    tags {
-        Name = "Terraform web 2"
+        Name = "Terraform web ${count.index}"
     }
 }
 
