@@ -4,27 +4,6 @@ provider "aws" {
     region = "${var.aws_region}"
 }
 
-variable "aws_security_group" {
-    default = {
-        sg_count                = ""
-
-        sg_0_name               = ""
-        sg_0_ingress_from_port  = ""
-        sg_0_ingress_to_port    = ""
-        sg_0_protocol           = ""
-
-        sg_1_name               = ""
-        sg_1_ingress_from_port  = ""
-        sg_1_ingress_to_port    = ""
-        sg_1_protocol           = ""
-
-        sg_2_name               = ""
-        sg_2_ingress_from_port  = ""
-        sg_2_ingress_to_port    = ""
-        sg_2_protocol           = ""
-    }
-}
-
 resource "aws_security_group" "default" {
     count = "${var.aws_security_group.sg_count}"
 
