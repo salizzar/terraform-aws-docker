@@ -1,5 +1,3 @@
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
 variable "aws_region" {}
 
 variable "aws_key_name" {}
@@ -11,7 +9,14 @@ variable "aws_instance_user" {}
 variable "aws_amis" {
     default = {
         us-east-1 = "ami-246ed34c" # north virginia
-        us-west-1 = "ami-9b6e64de" # north california
+    }
+}
+
+variable "aws_availability_zones" {
+    default = {
+        "0" = "us-east-1a"
+        "1" = "us-east-1b"
+        "2" = "us-east-1c"
     }
 }
 

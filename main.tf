@@ -1,6 +1,4 @@
 provider "aws" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
     region = "${var.aws_region}"
 }
 
@@ -42,10 +40,11 @@ resource "aws_elb" "web" {
 }
 
 resource "aws_instance" "web" {
-    count = 2
+    count = 3
 
     instance_type = "${var.aws_instance_type}"
     ami = "${lookup(var.aws_amis, var.aws_region)}"
+    availability_zone = "${lookup(var.aws_availability_zones, count.index)}"
 
     key_name = "${var.aws_key_name}"
     security_groups = [ "${aws_security_group.default.*.name}" ]
@@ -56,12 +55,19 @@ resource "aws_instance" "web" {
         key_file = "${var.aws_key_path}"
     }
 
+    provisioner "file" {
+        source = "files/"
+        destination = "/tmp/"
+    }
+
     provisioner "remote-exec" {
         inline = [
             "sudo yum install -y docker",
             "sudo service docker start",
             "sudo docker pull nginx",
-            "sudo docker run -d -p 80:80 nginx"
+            "sudo docker run -d -p 80:80 -v /tmp:/usr/share/nginx/html --name nginx_${count.index} nginx",
+            "sudo sed -iE \"s/{{ hostname }}/`hostname`/g\" /tmp/index.html",
+            "sudo sed -iE \"s/{{ container_name }}/nginx_${count.index}/g\" /tmp/index.html"
         ]
     }
 
